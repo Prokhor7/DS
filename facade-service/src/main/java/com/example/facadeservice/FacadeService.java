@@ -1,5 +1,9 @@
 package com.example.facadeservice;
 
+import com.hazelcast.collection.IQueue;
+import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.HazelcastInstance;
+import my.sharedclasses.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -16,15 +20,20 @@ public class FacadeService {
     Logger logger = LoggerFactory.getLogger(FacadeService.class);
 
     private List<WebClient> loggingWebClients;
-    private WebClient messagesWebClient;
+    private List<WebClient> messagesWebClients;
+    private HazelcastInstance hz = Hazelcast.newHazelcastInstance();
+    private IQueue<Message> queue = hz.getQueue("mq");
 
     public FacadeService() {
         loggingWebClients = List.of(
+                WebClient.create("http://localhost:8082"),
                 WebClient.create("http://localhost:8083"),
-                WebClient.create("http://localhost:8084"),
-                WebClient.create("http://localhost:8085")
+                WebClient.create("http://localhost:8084")
         );
-        messagesWebClient = WebClient.create("http://localhost:8082");
+        messagesWebClients = List.of(
+                WebClient.create("http://localhost:8085"),
+                WebClient.create("http://localhost:8086")
+        );
     }
 
     public Mono<Void> addMessage(PayloadText text) {
@@ -32,6 +41,12 @@ public class FacadeService {
 
         var loggingWebClient = getRandomLoggingClient();
         logger.info(loggingWebClient.toString());
+
+        try {
+            queue.put(msg);
+        } catch (InterruptedException e) {
+            System.out.println("Error");
+        }
 
         return loggingWebClient.post()
                 .uri("/log")
@@ -43,7 +58,7 @@ public class FacadeService {
 
     public Mono<String> messages() {
         var loggingWebClient = getRandomLoggingClient();
-
+        var messagesWebClient = getRandomMessagesClient();
         var logValuesMono = loggingWebClient.get()
                 .uri("/log")
                 .retrieve()
@@ -62,6 +77,14 @@ public class FacadeService {
     private WebClient getRandomLoggingClient() {
         Random random = new Random();
         int index = random.nextInt(loggingWebClients.size());
+        //index = 0;
         return loggingWebClients.get(index);
+    }
+
+    private WebClient getRandomMessagesClient(){
+        Random random = new Random();
+        int index = random.nextInt(messagesWebClients.size());
+        //index = 0;
+        return messagesWebClients.get(index);
     }
 }

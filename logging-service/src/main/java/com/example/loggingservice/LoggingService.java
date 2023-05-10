@@ -3,7 +3,7 @@ package com.example.loggingservice;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import org.springframework.stereotype.Service;
-
+import my.sharedclasses.Message;
 import java.util.Map;
 import java.util.UUID;
 
