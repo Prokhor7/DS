@@ -5,28 +5,24 @@ import com.hazelcast.map.IMap;
 import java.io.Serializable;
 
 public class PessimisticUpdateMember {
-    public static void main( String[] args ) throws Exception {
+    public static void main(String[] args) throws Exception {
         HazelcastInstance hz = Hazelcast.newHazelcastInstance();
-        IMap<String, Value> map = hz.getMap( "map" );
+        IMap<String, Value> map = hz.getMap("map");
         String key = "1";
-        synchronized (map) {
-            if (!map.containsKey(key)) {
-                map.put(key, new Value());
-            }
-        }
-        System.out.println( "Starting");
-        for ( int k = 0; k < 1000; k++ ) {
-            map.lock( key );
+        map.putIfAbsent(key, new Value());
+        System.out.println("Starting");
+        for (int k = 0; k < 1000; k++) {
+            map.lock(key);
             try {
-                Value value = map.get( key );
-                Thread.sleep( 10 );
+                Value value = map.get(key);
+                Thread.sleep(10);
                 value.amount++;
-                map.put( key, value );
+                map.put(key, value);
             } finally {
-                map.unlock( key );
+                map.unlock(key);
             }
         }
-        System.out.println( "Finished! Result = " + map.get( key ).amount );
+        System.out.println("Finished! Result = " + map.get(key).amount);
     }
 
     static class Value implements Serializable {

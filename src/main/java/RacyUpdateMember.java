@@ -5,24 +5,20 @@ import com.hazelcast.map.IMap;
 import java.io.Serializable;
 
 public class RacyUpdateMember {
-    public static void main( String[] args ) throws Exception {
+    public static void main(String[] args) throws Exception {
         HazelcastInstance hz = Hazelcast.newHazelcastInstance();
-        IMap<String, Value> map = hz.getMap( "map" );
+        IMap<String, Value> map = hz.getMap("map");
         String key = "1";
-        synchronized (map) {
-            if (!map.containsKey(key)) {
-                map.put(key, new Value());
-            }
-        }
-        System.out.println( "Starting" );
-        for ( int k = 0; k < 1000; k++ ) {
-            if ( k % 100 == 0 ) System.out.println( "At: " + k );
-            Value value = map.get( key );
-            Thread.sleep( 10 );
+        map.putIfAbsent(key, new Value());
+        System.out.println("Starting");
+        for (int k = 0; k < 1000; k++) {
+            if (k % 100 == 0) System.out.println("At: " + k);
+            Value value = map.get(key);
+            Thread.sleep(10);
             value.amount++;
-            map.put( key, value );
+            map.put(key, value);
         }
-        System.out.println( "Finished! Result = " + map.get(key).amount );
+        System.out.println("Finished! Result = " + map.get(key).amount);
     }
 
     static class Value implements Serializable {
