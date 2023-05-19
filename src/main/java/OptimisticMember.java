@@ -9,7 +9,9 @@ public class OptimisticMember {
         HazelcastInstance hz = Hazelcast.newHazelcastInstance();
         IMap<String, Value> map = hz.getMap( "map" );
         String key = "1";
-        map.put( key, new Value() );
+        if(!map.containsKey(key)) {
+            map.put(key, new Value());
+        }
         System.out.println( "Starting" );
         for ( int k = 0; k < 1000; k++ ) {
             if ( k % 10 == 0 ) System.out.println( "At: " + k );

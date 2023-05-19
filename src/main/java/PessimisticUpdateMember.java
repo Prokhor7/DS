@@ -9,8 +9,10 @@ public class PessimisticUpdateMember {
         HazelcastInstance hz = Hazelcast.newHazelcastInstance();
         IMap<String, Value> map = hz.getMap( "map" );
         String key = "1";
-        map.put( key, new Value() );
-        System.out.println( "Starting" );
+        if(!map.containsKey(key)){
+            map.put( key, new Value() );
+        }
+        System.out.println( "Starting");
         for ( int k = 0; k < 1000; k++ ) {
             map.lock( key );
             try {
