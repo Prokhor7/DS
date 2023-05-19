@@ -9,8 +9,10 @@ public class RacyUpdateMember {
         HazelcastInstance hz = Hazelcast.newHazelcastInstance();
         IMap<String, Value> map = hz.getMap( "map" );
         String key = "1";
-        if(!map.containsKey(key)) {
-            map.put(key, new Value());
+        synchronized (map) {
+            if (!map.containsKey(key)) {
+                map.put(key, new Value());
+            }
         }
         System.out.println( "Starting" );
         for ( int k = 0; k < 1000; k++ ) {
