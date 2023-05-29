@@ -31,6 +31,12 @@ public class LoggingController {
     public ResponseEntity<Void> log(@RequestBody Message msg) {
         logger.info(msg.toString());
         loggingService.addToLog(msg);
+        System.out.println("Received message: " + msg.getTxt());
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/health")
+    public String consulCheck() {
+        return "I AM HEALTHY";
     }
 }

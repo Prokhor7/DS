@@ -6,10 +6,14 @@ import com.hazelcast.core.HazelcastInstance;
 import my.sharedclasses.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import com.orbitz.consul.Consul;
+import com.orbitz.consul.KeyValueClient;
 
 import java.util.List;
 import java.util.Random;
@@ -19,12 +23,15 @@ import java.util.UUID;
 public class FacadeService {
     Logger logger = LoggerFactory.getLogger(FacadeService.class);
 
-    private List<WebClient> loggingWebClients;
-    private List<WebClient> messagesWebClients;
+    //private List<WebClient> loggingWebClients;
+    //private List<WebClient> messagesWebClients;
+    private DiscoveryClient discoveryClient;
     private HazelcastInstance hz = Hazelcast.newHazelcastInstance();
-    private IQueue<Message> queue = hz.getQueue("mq");
+    private Consul consul = Consul.builder().build();
+    private KeyValueClient kvClient = consul.keyValueClient();
+    private IQueue<Message> queue;
 
-    public FacadeService() {
+    /*public FacadeService() {
         loggingWebClients = List.of(
                 WebClient.create("http://localhost:8082"),
                 WebClient.create("http://localhost:8083"),
@@ -34,6 +41,13 @@ public class FacadeService {
                 WebClient.create("http://localhost:8085"),
                 WebClient.create("http://localhost:8086")
         );
+    }*/
+
+    public FacadeService(DiscoveryClient discoveryClient){
+        this.discoveryClient = discoveryClient;
+        kvClient.putValue("myMap", "logging_map");
+        kvClient.putValue("myMq", "mq");
+        queue = hz.getQueue(kvClient.getValueAsString("myMq").get());
     }
 
     public Mono<Void> addMessage(PayloadText text) {
@@ -74,7 +88,7 @@ public class FacadeService {
                 .onErrorReturn("Error");
     }
 
-    private WebClient getRandomLoggingClient() {
+    /*private WebClient getRandomLoggingClient() {
         Random random = new Random();
         int index = random.nextInt(loggingWebClients.size());
         //index = 0;
@@ -86,5 +100,26 @@ public class FacadeService {
         int index = random.nextInt(messagesWebClients.size());
         //index = 0;
         return messagesWebClients.get(index);
+    }*/
+
+    private WebClient getRandomLoggingClient() {
+        List<ServiceInstance> instances = discoveryClient.getInstances("logging-service");
+        if (instances.isEmpty()) {
+            throw new RuntimeException("No instances available for logging-service");
+        }
+        ServiceInstance instance = instances.get(new Random().nextInt(instances.size()));
+        String url = instance.getUri().toString();
+        return WebClient.create(url);
     }
+
+    private WebClient getRandomMessagesClient() {
+        List<ServiceInstance> instances = discoveryClient.getInstances("messages-service");
+        if (instances.isEmpty()) {
+            throw new RuntimeException("No instances available for messages-service");
+        }
+        ServiceInstance instance = instances.get(new Random().nextInt(instances.size()));
+        String url = instance.getUri().toString();
+        return WebClient.create(url);
+    }
+
 }

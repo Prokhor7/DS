@@ -20,7 +20,12 @@ public class FacadeController {
     }
 
     @PostMapping("/facade_service")
-    public Mono<Void> addMessage(@RequestBody PayloadText text){
+    public Mono<Void> addMessage(@RequestBody PayloadText text) {
         return facadeService.addMessage(text);
+    }
+
+    @GetMapping("/health")
+    public String consulCheck() {
+        return "I AM HEALTHY";
     }
 }

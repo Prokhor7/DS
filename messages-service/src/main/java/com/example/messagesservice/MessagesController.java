@@ -16,7 +16,8 @@ public class MessagesController {
         return messagesService.getMessages();
     }
 
-    public String user() {
-        return "NOTHING";
+    @GetMapping("/health")
+    public String consulCheck() {
+        return "I AM HEALTHY";
     }
 }
